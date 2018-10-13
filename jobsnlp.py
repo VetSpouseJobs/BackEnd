@@ -188,3 +188,47 @@ def read_pdf(pdf_file):
 
     #return ''.join(filtered_pdf)
     return ''.join(pdf).replace('\n',' ').replace('\uf0b7', '')
+
+def clean_resume(resume_text):
+    '''
+    Clean resume text
+
+    Args:
+        resume_text (file): text file
+
+    Returns:
+        string: clean text  
+    '''
+    token_list = []
+    token_list_1 = []
+    filtered_pos = []
+    punctuation = re.compile(r'[-.?!,":;()|0-9]')
+    
+    # Tokenize resume
+    tokens = nltk.word_tokenize(resume_text.lower())
+    # Remove stop words
+    for token in tokens:
+        if token not in set(stopwords.words('english')):
+            token_list.append(token)
+    # Remove punctuation
+    for token in token_list:
+        word = punctuation.sub("", token)
+        if len(word)>0:
+            token_list_1.append(word)
+    # Determine POS tags
+    tokens_pos_tag = nltk.pos_tag(token_list_1)
+    pos_df = pd.DataFrame(tokens_pos_tag, columns = ('word','POS'))
+    pos_sum = pos_df.groupby('POS', as_index=False).count() # group by POS tags
+    pos_sum.sort_values(['word'], ascending=[False]) # in descending order of number of words per tag
+    # Filter Nouns
+    for one in tokens_pos_tag:
+        if one[1] == 'NN' or one[1] == 'NNS' or one[1] == 'NNP' or one[1] == 'NNPS':
+            filtered_pos.append(one)
+    # Top Words
+    fdist_pos = nltk.FreqDist(filtered_pos)
+    top_words = fdist_pos.most_common()
+    top_words_df = pd.DataFrame(top_words, columns = ('pos','count'))
+    top_words_df['Word'] = top_words_df['pos'].apply(lambda x: x[0]) # split the tuple of POS
+    top_words_df = top_words_df.drop('pos', 1) # drop the previous column
+
+    return " ".join(top_words_df.Word)
