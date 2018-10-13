@@ -64,7 +64,7 @@ class ResumeJobsRecommender(BaseEstimator, TransformerMixin):
             n_recommendations (int): Number of recommendataions to return
 
         Returns:
-            list: indicies of 
+            list: indicies of recommended jobs in descending order
         '''
         resume_vect = self.tfidf_vect.transform(resume)
         recommendations = linear_kernel(self.job_vectors_, resume_vect)
@@ -73,6 +73,21 @@ class ResumeJobsRecommender(BaseEstimator, TransformerMixin):
             n_recommendations = self.job_count_
 
         return list((-recommendations.reshape(-1)).argsort())[:n_recommendations]
+
+    def read_pdf(self, pdf_file):
+        '''
+        Convert pdf file to string
+
+        Args:
+            pdf_file (file): resume pdf
+
+        Returns:
+            string: resume text
+        '''   
+        with open(pdf_file, "rb") as f:
+            pdf = pdftotext.PDF(f)
+        
+        return '',join(pdf)
 
     class LemmaTokenizer():
         def __init__(self):
