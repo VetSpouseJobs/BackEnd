@@ -1,20 +1,25 @@
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 from nltk import word_tokenize
 from nltk.stem.porter import PorterStemmer
 from nltk.stem.snowball import SnowballStemmer
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.corpus import stopwords
+from nltk.util import bigrams, trigrams
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity, linear_kernel
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.base import BaseEstimator, TransformerMixin
 
+from wordcloud import WordCloud
+
 import pdftotext
 import docx2txt
 
+import re
 import os.path
 
 
@@ -31,7 +36,10 @@ class ResumeJobsRecommender(BaseEstimator, TransformerMixin):
 
         '''
         self.tfidf_vect = TfidfVectorizer(tokenizer=self.LemmaTokenizer(),
-                                          stop_words=stopwords.words('english'))
+                                          stop_words=stopwords.words(
+                                              'english'),
+                                          ngram_range=(1, 3),
+                                          strip_accents='unicode')
 
     def fit(self, jobs):
         '''
@@ -46,6 +54,8 @@ class ResumeJobsRecommender(BaseEstimator, TransformerMixin):
         '''
         self.tfidf_vect.fit(jobs)
         self.job_vectors_ = self.tfidf_vect.transform(jobs)
+        self.vocabulary_ = self.tfidf_vect.vocabulary_
+        self.inv_vocabulary_ = {v:k for k, v in self.vocabulary_.items()}
         self.job_count_ = len(jobs)
 
     def transform(self, jobs):
@@ -76,16 +86,37 @@ class ResumeJobsRecommender(BaseEstimator, TransformerMixin):
         resume_vect = self.tfidf_vect.transform([resume])
 
         if metric == 'linear_kernel':
-            recommendation_scores = linear_kernel(self.job_vectors_, resume_vect)
+            recommendation_scores = linear_kernel(
+                self.job_vectors_, resume_vect)
         else:
-            recommendation_scores = cosine_similarity(self.job_vectors_, resume_vect)
+            recommendation_scores = cosine_similarity(
+                self.job_vectors_, resume_vect)
 
         if not n_recommendations:
             n_recommendations = self.job_count_
 
-        recommendation_idxs = list((-recommendation_scores.reshape(-1)).argsort())[:n_recommendations]
+        recommendation_idxs = list(
+            (-recommendation_scores.reshape(-1)).argsort())[:n_recommendations]
 
         return recommendation_idxs, recommendation_scores[recommendation_idxs]
+
+    def get_wordcloud(self, text, file_path, max_words=500):
+        '''
+        Return top n_recommendations jobs that match the resume
+
+        Args:
+            resume (string): Resume text
+            n_recommendations (int): Number of recommendataions to return
+            metric (string): "cosine_similarity", "linear_kernel"
+
+        Returns:
+            list: indicies of recommended jobs in descending order
+        '''
+        wc = WordCloud(background_color="white", random_state=5, max_words=max_words)
+
+        text_vector = np.array(self.tfidf_vect.transform(text).todense()).reshape(-1)
+        freq_dict = {self.inv_vocabulary_[i]:f for i, f in enumerate(text_vector)}
+        wc.generate_from_frequencies(freq_dict)
 
     class LemmaTokenizer():
         def __init__(self):
@@ -109,6 +140,7 @@ def read_docx(docx_file):
         raise FileNotFoundError(1, f'{docx_file} was not found')
 
     return docx2txt.process(docx_file)
+
 
 def read_pdf(pdf_file):
     '''
