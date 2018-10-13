@@ -4,3 +4,4 @@ sklearn
 nltk
 pdftotext
 docx2txt
+wordcloud
