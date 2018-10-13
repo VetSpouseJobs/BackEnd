@@ -9,6 +9,7 @@ from nltk.corpus import stopwords
 from sklearn.metrics.pairwise import linear_kernel
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.base import BaseEstimator, TransformerMixin
+import pdftotext
 
 
 class ResumeJobsRecommender(BaseEstimator, TransformerMixin):
@@ -31,6 +32,7 @@ class ResumeJobsRecommender(BaseEstimator, TransformerMixin):
         Fit the recommender on all job descriptions in jobs 
 
         Args:
+            jobs (list): list of job descriptions
 
         Returns:
             None
@@ -40,9 +42,22 @@ class ResumeJobsRecommender(BaseEstimator, TransformerMixin):
         self.job_vectors_ = self.tfidf_vect.transform(jobs)
         self.job_count_ = len(jobs)
 
+    def transform(self, jobs):
+        '''
+        Transform job descriptions in jobs to tf-idf vectors
+
+        Args:
+            jobs (list): list of job descriptions
+
+        Returns:
+            None
+
+        '''
+        return self.tfidf_vect.transform(jobs)
+
     def predict(self, resume, n_recommendations=None):
         '''
-        Retrun top n_recommendations jobs that match the resume
+        Return top n_recommendations jobs that match the resume
 
         Args:
             resume (string): Resume text
