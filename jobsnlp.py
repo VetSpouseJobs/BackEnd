@@ -8,7 +8,7 @@ from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.corpus import stopwords
 
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import linear_kernel
+from sklearn.metrics.pairwise import cosine_similarity, linear_kernel
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.base import BaseEstimator, TransformerMixin
 
@@ -61,19 +61,24 @@ class ResumeJobsRecommender(BaseEstimator, TransformerMixin):
         '''
         return self.tfidf_vect.transform(jobs)
 
-    def predict(self, resume, n_recommendations=None):
+    def predict(self, resume, n_recommendations=None, metric='cosine_similarity'):
         '''
         Return top n_recommendations jobs that match the resume
 
         Args:
             resume (string): Resume text
             n_recommendations (int): Number of recommendataions to return
+            metric (string): "cosine_similarity", "linear_kernel"
 
         Returns:
             list: indicies of recommended jobs in descending order
         '''
-        resume_vect = self.tfidf_vect.transform(resume)
-        recommendations = linear_kernel(self.job_vectors_, resume_vect)
+        resume_vect = self.tfidf_vect.transform([resume])
+
+        if metric == 'linear_kernel':
+            recommendations = linear_kernel(self.job_vectors_, resume_vect)
+        else:
+            recommendations = cosine_similarity(self.job_vectors_, resume_vect)
 
         if not n_recommendations:
             n_recommendations = self.job_count_
