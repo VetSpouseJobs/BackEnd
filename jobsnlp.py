@@ -76,14 +76,16 @@ class ResumeJobsRecommender(BaseEstimator, TransformerMixin):
         resume_vect = self.tfidf_vect.transform([resume])
 
         if metric == 'linear_kernel':
-            recommendations = linear_kernel(self.job_vectors_, resume_vect)
+            recommendation_scores = linear_kernel(self.job_vectors_, resume_vect)
         else:
-            recommendations = cosine_similarity(self.job_vectors_, resume_vect)
+            recommendation_scores = cosine_similarity(self.job_vectors_, resume_vect)
 
         if not n_recommendations:
             n_recommendations = self.job_count_
 
-        return list((-recommendations.reshape(-1)).argsort())[:n_recommendations]
+        recommendation_idxs = list((-recommendation_scores.reshape(-1)).argsort())[:n_recommendations]
+
+        return recommendation_idxs, recommendation_scores[recommendation_idxs]
 
     class LemmaTokenizer():
         def __init__(self):
