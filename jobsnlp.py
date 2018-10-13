@@ -21,6 +21,7 @@ import docx2txt
 
 import re
 import os.path
+import string
 
 
 class ResumeJobsRecommender(BaseEstimator, TransformerMixin):
@@ -35,9 +36,11 @@ class ResumeJobsRecommender(BaseEstimator, TransformerMixin):
             None
 
         '''
+        self.stop_words = stopwords.words('english') + \
+                          list(string.punctuation) + \
+                          ['\uf0b7']
         self.tfidf_vect = TfidfVectorizer(tokenizer=self.LemmaTokenizer(),
-                                          stop_words=stopwords.words(
-                                              'english'),
+                                          stop_words=stopwords.words('english')+list(string.punctuation),
                                           ngram_range=(1, 3),
                                           strip_accents='unicode')
 
@@ -100,23 +103,24 @@ class ResumeJobsRecommender(BaseEstimator, TransformerMixin):
 
         return recommendation_idxs, recommendation_scores[recommendation_idxs]
 
-    def get_wordcloud(self, text, file_path, max_words=500):
+    def generate_wordcloud(self, doc, file_path, max_words=100):
         '''
         Return top n_recommendations jobs that match the resume
 
         Args:
-            resume (string): Resume text
-            n_recommendations (int): Number of recommendataions to return
-            metric (string): "cosine_similarity", "linear_kernel"
+            doc (string): document from which to generate wordcloud
+            file_path (string): .png File path to save image to
+            max_words (int): "cosine_similarity", "linear_kernel"
 
         Returns:
             list: indicies of recommended jobs in descending order
         '''
         wc = WordCloud(background_color="white", random_state=5, max_words=max_words)
 
-        text_vector = np.array(self.tfidf_vect.transform(text).todense()).reshape(-1)
+        text_vector = np.array(self.tfidf_vect.transform([doc]).todense()).reshape(-1)
         freq_dict = {self.inv_vocabulary_[i]:f for i, f in enumerate(text_vector)}
         wc.generate_from_frequencies(freq_dict)
+        wc.to_file(file_path)
 
     class LemmaTokenizer():
         def __init__(self):
