@@ -38,6 +38,7 @@ class ResumeJobsRecommender(BaseEstimator, TransformerMixin):
         '''
         self.stop_words = stopwords.words('english') + \
                           list(string.punctuation) + \
+                          list(string.whitespace) + \
                           ['\uf0b7']
         self.tfidf_vect = TfidfVectorizer(tokenizer=self.LemmaTokenizer(),
                                           stop_words=stopwords.words('english')+list(string.punctuation),
@@ -130,6 +131,24 @@ class ResumeJobsRecommender(BaseEstimator, TransformerMixin):
             return [self.wnl.lemmatize(t) for t in word_tokenize(doc)]
 
 
+def read_txt(txt_file):
+    '''
+    Read txt file to string
+
+    Args:
+        txt_file (file): resume txt
+
+    Returns:
+        string: resume text
+    '''
+    if not os.path.isfile(txt_file):
+        raise FileNotFoundError(1, f'{txt_file} was not found')
+
+    with open(txt_file, 'r') as f:
+        resume = f.read()
+
+    return resume  
+
 def read_docx(docx_file):
     '''
     Convert docx file to string
@@ -144,7 +163,6 @@ def read_docx(docx_file):
         raise FileNotFoundError(1, f'{docx_file} was not found')
 
     return docx2txt.process(docx_file)
-
 
 def read_pdf(pdf_file):
     '''
@@ -163,7 +181,10 @@ def read_pdf(pdf_file):
     if not os.path.isfile(pdf_file):
         raise FileNotFoundError(1, f'{pdf_file} was not found')
 
-    with open(pdf_file, "rb") as f:
+    with open(pdf_file, 'rb') as f:
         pdf = pdftotext.PDF(f)
 
-    return ''.join(pdf)
+    #filtered_pdf = [w for w in pdf if not w in stopwords]
+
+    #return ''.join(filtered_pdf)
+    return ''.join(pdf).replace('\n',' ').replace('\uf0b7', '')
