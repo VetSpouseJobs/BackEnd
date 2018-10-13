@@ -1,15 +1,21 @@
 import numpy as np
 import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
+
 from nltk import word_tokenize
 from nltk.stem.porter import PorterStemmer
 from nltk.stem.snowball import SnowballStemmer
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.corpus import stopwords
+
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import linear_kernel
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.base import BaseEstimator, TransformerMixin
+
 import pdftotext
+import docx2txt
+
+import os.path
 
 
 class ResumeJobsRecommender(BaseEstimator, TransformerMixin):
@@ -74,24 +80,47 @@ class ResumeJobsRecommender(BaseEstimator, TransformerMixin):
 
         return list((-recommendations.reshape(-1)).argsort())[:n_recommendations]
 
-    def read_pdf(self, pdf_file):
-        '''
-        Convert pdf file to string
-
-        Args:
-            pdf_file (file): resume pdf
-
-        Returns:
-            string: resume text
-        '''   
-        with open(pdf_file, "rb") as f:
-            pdf = pdftotext.PDF(f)
-        
-        return '',join(pdf)
-
     class LemmaTokenizer():
         def __init__(self):
             self.wnl = WordNetLemmatizer()
 
         def __call__(self, doc):
             return [self.wnl.lemmatize(t) for t in word_tokenize(doc)]
+
+
+def read_docx(docx_file):
+    '''
+    Convert docx file to string
+
+    Args:
+        docx_file (file): resume docx
+
+    Returns:
+        string: resume text
+    '''
+    if not os.path.isfile(docx_file):
+        raise FileNotFoundError(1, f'{docx_file} was not found')
+
+    return docx2txt.process(docx_file)
+
+def read_pdf(pdf_file):
+    '''
+    Convert pdf file to string
+
+    Args:
+        pdf_file (file): resume pdf
+
+    Returns:
+        string: resume text
+
+    Raises:
+        FileNotFoundError
+
+    '''
+    if not os.path.isfile(pdf_file):
+        raise FileNotFoundError(1, f'{pdf_file} was not found')
+
+    with open(pdf_file, "rb") as f:
+        pdf = pdftotext.PDF(f)
+
+    return ''.join(pdf)
